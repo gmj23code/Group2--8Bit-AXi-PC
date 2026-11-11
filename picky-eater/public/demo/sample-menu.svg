@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 900" width="600" height="900" font-family="Georgia, 'Times New Roman', serif">
+  <rect width="600" height="900" fill="#fbf4e6"/>
+  <rect x="18" y="18" width="564" height="864" fill="none" stroke="#7a5c3e" stroke-width="3" rx="14"/>
+  <rect x="28" y="28" width="544" height="844" fill="none" stroke="#7a5c3e" stroke-width="1" rx="10"/>
+
+  <text x="300" y="92" text-anchor="middle" font-size="42" font-weight="bold" fill="#3d2b1f">The Sunny Spoon</text>
+  <text x="300" y="124" text-anchor="middle" font-size="18" font-style="italic" fill="#7a5c3e">Café &amp; Kitchen</text>
+  <line x1="200" y1="142" x2="400" y2="142" stroke="#7a5c3e" stroke-width="1.5"/>
+
+  <g fill="#3d2b1f">
+    <text x="60" y="190" font-size="22" font-weight="bold" letter-spacing="3" fill="#a0522d">BOWLS &amp; SALADS</text>
+    <text x="60" y="224" font-size="20" font-weight="bold">Grilled Salmon Bowl</text><text x="540" y="224" font-size="20" text-anchor="end">$16</text>
+    <text x="60" y="246" font-size="15" font-style="italic">Salmon, quinoa, avocado, kale, lemon-tahini dressing</text>
+    <text x="60" y="280" font-size="20" font-weight="bold">Chicken Caesar Salad</text><text x="540" y="280" font-size="20" text-anchor="end">$13</text>
+    <text x="60" y="302" font-size="15" font-style="italic">Romaine, grilled chicken, parmesan, croutons, Caesar dressing</text>
+    <text x="60" y="336" font-size="20" font-weight="bold">Garden Lentil Soup</text><text x="540" y="336" font-size="20" text-anchor="end">$8</text>
+    <text x="60" y="358" font-size="15" font-style="italic">Red lentils, carrots, celery, cumin. Vegan and gluten-free</text>
+
+    <text x="60" y="410" font-size="22" font-weight="bold" letter-spacing="3" fill="#a0522d">MAINS</text>
+    <text x="60" y="444" font-size="20" font-weight="bold">Tofu Veggie Stir-Fry</text><text x="540" y="444" font-size="20" text-anchor="end">$13</text>
+    <text x="60" y="466" font-size="15" font-style="italic">Tofu, broccoli, peppers, brown rice, soy-ginger sauce</text>
+    <text x="60" y="500" font-size="20" font-weight="bold">Shrimp Tacos</text><text x="540" y="500" font-size="20" text-anchor="end">$15</text>
+    <text x="60" y="522" font-size="15" font-style="italic">Corn tortillas, grilled shrimp, cabbage slaw, chipotle mayo</text>
+    <text x="60" y="556" font-size="20" font-weight="bold">Steak &amp; Eggs</text><text x="540" y="556" font-size="20" text-anchor="end">$19</text>
+    <text x="60" y="578" font-size="15" font-style="italic">Sirloin steak, two fried eggs, roasted potatoes</text>
+    <text x="60" y="612" font-size="20" font-weight="bold">Margherita Pizza</text><text x="540" y="612" font-size="20" text-anchor="end">$12</text>
+    <text x="60" y="634" font-size="15" font-style="italic">Tomato sauce, fresh mozzarella, basil</text>
+    <text x="60" y="668" font-size="20" font-weight="bold">Pesto Pasta</text><text x="540" y="668" font-size="20" text-anchor="end">$14</text>
+    <text x="60" y="690" font-size="15" font-style="italic">Linguine, basil pesto, pine nuts, parmesan</text>
+    <text x="60" y="724" font-size="20" font-weight="bold">Classic Cheeseburger &amp; Fries</text><text x="540" y="724" font-size="20" text-anchor="end">$14</text>
+    <text x="60" y="746" font-size="15" font-style="italic">Beef patty, cheddar, brioche bun, fries</text>
+
+    <text x="60" y="796" font-size="22" font-weight="bold" letter-spacing="3" fill="#a0522d">SWEETS &amp; SIPS</text>
+    <text x="60" y="826" font-size="18" font-weight="bold">Greek Yogurt Parfait $7</text>
+    <text x="320" y="826" font-size="18" font-weight="bold">Chocolate Lava Cake $9</text>
+    <text x="60" y="852" font-size="18" font-weight="bold">Fresh Mint Lemonade $4</text>
+  </g>
+</svg>
