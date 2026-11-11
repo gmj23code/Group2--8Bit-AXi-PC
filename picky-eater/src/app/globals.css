@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/*
+  Picky Eater theme: soft, warm pastels with dark text for high contrast.
+  Every text/background pair below meets WCAG AA (4.5:1) or better.
+*/
+@theme {
+  --font-sans: var(--font-nunito), ui-rounded, system-ui, sans-serif;
+
+  --color-cream: #fffaf3;
+  --color-ink: #2b2433; /* main text */
+  --color-ink-soft: #5a5163; /* secondary text, still AA on cream */
+  --color-line: #e8dfd3; /* borders */
+
+  --color-brand: #2f7d4f; /* buttons, selected chips (white text on it = 5.3:1) */
+  --color-brand-dark: #22603c;
+  --color-brand-soft: #e3f5ea;
+
+  --color-peach: #ffe9dc;
+  --color-lavender: #efe9fb;
+  --color-sky: #e4f1fb;
+
+  /* Score badge colors (used from Phase 3). Text color is dark enough on its own background. */
+  --color-great: #1f6b37;
+  --color-great-bg: #dcf5e3;
+  --color-okay: #6b4f00;
+  --color-okay-bg: #fff1bf;
+  --color-meh: #8f3700;
+  --color-meh-bg: #ffe2cc;
+  --color-bad: #9b111e;
+  --color-bad-bg: #fde0e0;
+
+  --radius-card: 1.5rem;
+
+  /* Loading screen scan line sweeping down and back up the photo. */
+  --animate-scan: scan 2.4s ease-in-out infinite;
+  @keyframes scan {
+    0%,
+    100% {
+      top: 4%;
+    }
+    50% {
+      top: 94%;
+    }
+  }
+}
+
+/* 18px base: every rem-based size (text, padding, tap targets) scales up for readability. */
+html {
+  font-size: 112.5%;
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Clear, thick focus ring for keyboard users. */
+:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important; /* infinite + tiny duration would flicker */
+    transition-duration: 0.01ms !important;
+  }
+}
