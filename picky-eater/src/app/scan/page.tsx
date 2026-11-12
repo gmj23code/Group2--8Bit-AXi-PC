@@ -3,25 +3,29 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, ButtonLink } from "@/components/Button";
+import { DemoMenuPages } from "@/components/DemoMenuPages";
 import { DemoToggle } from "@/components/DemoToggle";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
+import { Icon } from "@/components/Icon";
 import { LoadingScan } from "@/components/LoadingScan";
 import { MenuCapture } from "@/components/MenuCapture";
 import { ProfileSummary } from "@/components/ProfileSummary";
-import { ScanError, analyze } from "@/lib/analyze-client";
-import { DEMO_MENU_IMAGE } from "@/lib/demo";
-import { ImageError, prepareImage, type PreparedImage } from "@/lib/image";
+import { SelectedPages } from "@/components/SelectedPages";
+import { ScanError, scanMenu, type ScanProgress } from "@/lib/analyze-client";
+import { demoPageImages } from "@/lib/demo-menu-svg";
+import { LIMITS } from "@/lib/limits";
 import { analysisStore, setDemoMode, useDemoMode, usePreferences } from "@/lib/preferences-store";
+import { InputError, addFiles, type ScanSelection } from "@/lib/scan-input";
 
 export default function ScanPage() {
   const router = useRouter();
   const prefs = usePreferences();
   const demo = useDemoMode();
-  const [image, setImage] = useState<PreparedImage | null>(null);
+  const [selection, setSelection] = useState<ScanSelection>(null);
   const [preparing, setPreparing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [photoError, setPhotoError] = useState<string | null>(null); // couldn't open the file
+  const [progress, setProgress] = useState<ScanProgress | null>(null); // non-null while scanning
+  const [fileError, setFileError] = useState<string | null>(null); // couldn't open/split the file
   const [scanError, setScanError] = useState<ScanError | null>(null); // scan failed
 
   if (prefs === undefined) return null;
@@ -44,116 +48,121 @@ export default function ScanPage() {
     );
   }
 
-  async function handleFile(file: File) {
-    setPhotoError(null);
+  async function handleFiles(files: File[]) {
+    setFileError(null);
     setScanError(null);
     setPreparing(true);
     try {
-      setImage(await prepareImage(file));
+      setSelection(await addFiles(selection, files));
     } catch (e) {
-      setPhotoError(e instanceof ImageError ? e.message : "We couldn't open that photo.");
+      setFileError(e instanceof InputError ? e.message : "We couldn't open that file.");
     } finally {
       setPreparing(false);
     }
   }
 
-  async function handleAnalyze() {
+  function removePage(id: string) {
+    if (selection?.kind !== "photos") return;
+    const pages = selection.pages.filter((p) => p.id !== id);
+    setSelection(pages.length ? { ...selection, pages } : null);
+  }
+
+  async function handleScan() {
     if (!prefs) return;
     setScanError(null);
-    setLoading(true);
+    const pages = demo ? [] : (selection?.pages ?? []);
+    setProgress({ stage: "reading", total: demo ? 3 : pages.length, done: [], active: [] });
     try {
-      analysisStore.save(await analyze(image, prefs, demo));
+      analysisStore.save(await scanMenu(pages, prefs, demo, setProgress));
       router.push("/results");
     } catch (e) {
       setScanError(e instanceof ScanError ? e : new ScanError("ai_unavailable", "Something went wrong. Please try again."));
-      setLoading(false);
+      setProgress(null);
     }
   }
 
-  // In demo mode, the sample menu stands in for a photo.
-  const previewSrc = image?.previewUrl ?? (demo ? DEMO_MENU_IMAGE : null);
+  // In demo mode, the 3-page sample menu stands in for the user's own pages.
+  const showDemoMenu = demo;
+  const pageCount = selection?.pages.length ?? 0;
+  const canAddPhotos = !selection || (selection.kind === "photos" && pageCount < LIMITS.maxPhotos);
 
-  if (loading) {
+  if (progress) {
+    const previews = demo ? demoPageImages() : (selection?.pages.map((p) => p.previewUrl ?? null) ?? []);
     return (
       <>
         <title>Reading the menu… · Picky Eater</title>
-        <LoadingScan imageSrc={previewSrc} demo={demo} />
+        <LoadingScan previews={previews} progress={progress} demo={demo} />
       </>
     );
   }
 
   return (
-    <div className="pt-6 flex flex-col gap-5">
+    <div className="pt-8 flex flex-col gap-5">
       <title>Scan a menu · Picky Eater</title>
-      <h1 className="text-3xl font-extrabold">Scan a menu</h1>
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-wider text-brand">Scan</p>
+        <h1 className="mt-2 font-display text-[2.6rem] leading-[1.05]">Scan a menu</h1>
+      </div>
       <ProfileSummary prefs={prefs} />
       <DemoToggle />
 
       {scanError ? (
         <ErrorState
           error={scanError}
-          onRetry={() => void handleAnalyze()}
+          onRetry={() => void handleScan()}
           onRetake={() => {
             setScanError(null);
-            setImage(null);
+            setSelection(null);
           }}
           onDemo={() => {
             setScanError(null);
-            setImage(null);
             setDemoMode(true);
           }}
         />
-      ) : previewSrc ? (
+      ) : showDemoMenu ? (
         <div className="flex flex-col gap-3">
-          <div className="rounded-card overflow-hidden border-2 border-line bg-white">
-            {/* Plain <img>: the source is a local data URL or a static SVG, so next/image adds nothing. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewSrc}
-              alt={image ? "Your menu photo" : "Sample menu from The Sunny Spoon café"}
-              className="w-full max-h-[28rem] object-contain bg-white"
-            />
-            {demo && !image && (
-              <p className="px-4 py-2 text-center font-bold text-ink-soft border-t border-line">Sample menu (Demo mode)</p>
-            )}
-          </div>
-
-          {image?.small && (
-            <p className="rounded-xl bg-okay-bg text-okay font-bold px-4 py-3">
-              ⚠️ This photo is quite small, so some text may be hard to read. A closer photo works best.
-            </p>
-          )}
-          {demo && image && (
-            <p className="rounded-xl bg-lavender font-bold px-4 py-3">
-              Demo mode is on, so you&apos;ll see sample results. Turn it off to check this photo for real.
-            </p>
-          )}
-
-          <Button onClick={() => void handleAnalyze()} className="w-full">
-            ✨ Check this menu
+          <DemoMenuPages />
+          <Button onClick={() => void handleScan()} className="w-full">
+            Check all 3 pages
           </Button>
-          {image && (
-            <Button variant="secondary" className="w-full" onClick={() => setImage(null)}>
-              Use a different photo
-            </Button>
-          )}
-          {demo && !image && <MenuCapture onFile={handleFile} disabled={preparing} />}
+          <p className="text-sm text-ink-soft text-center">Turn off Demo mode to scan your own menu.</p>
         </div>
       ) : (
-        <>
-          <p className="text-lg text-ink-soft">Lay the menu flat, use good light, and fit one page in the photo.</p>
-          <MenuCapture onFile={handleFile} disabled={preparing} />
-        </>
+        <div className="flex flex-col gap-3">
+          {selection ? (
+            <>
+              <SelectedPages selection={selection} onRemovePage={removePage} onClear={() => setSelection(null)} />
+              <Button onClick={() => void handleScan()} className="w-full" disabled={preparing}>
+                {pageCount > 1 ? `Check all ${pageCount} pages` : "Check this menu"}
+              </Button>
+              {canAddPhotos && (
+                <>
+                  <p className="mt-2 text-sm text-ink-soft text-center">More pages? Add one photo per page.</p>
+                  <MenuCapture onFiles={handleFiles} disabled={preparing} quiet adding />
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="text-ink-soft">
+                Take a photo of each page, or upload a PDF menu (up to {LIMITS.maxPdfPages} pages). Lay the menu flat in good
+                light.
+              </p>
+              <MenuCapture onFiles={handleFiles} disabled={preparing} />
+            </>
+          )}
+        </div>
       )}
 
-      {photoError && (
-        <p role="alert" className="rounded-xl border-2 border-bad bg-bad-bg text-bad font-extrabold px-4 py-3">
-          ⚠️ {photoError}
+      {fileError && (
+        <p role="alert" className="flex gap-2.5 rounded-lg bg-bad-bg text-bad font-medium px-4 py-3">
+          <Icon name="alert" size={18} className="mt-0.5" />
+          {fileError}
         </p>
       )}
       {preparing && (
-        <p role="status" className="text-center font-bold text-ink-soft">
-          Getting your photo ready…
+        <p role="status" className="text-center font-medium text-ink-soft">
+          Getting your menu ready…
         </p>
       )}
     </div>

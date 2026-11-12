@@ -1,13 +1,14 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
 
-// One big, easy-to-tap button style, used everywhere. Min height 56px.
+// One button style used everywhere. min-h-14 = 56px at our 18px base: an easy tap target.
 const base =
-  "inline-flex items-center justify-center gap-2 min-h-14 px-6 rounded-full text-lg font-extrabold transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center gap-2 min-h-14 px-6 rounded-xl text-base font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
 const variants = {
-  primary: "bg-brand text-white hover:bg-brand-dark shadow-sm",
-  secondary: "bg-white text-ink border-2 border-line hover:bg-brand-soft",
+  primary: "bg-brand text-white hover:bg-brand-dark shadow-card",
+  secondary: "bg-surface text-ink border border-line-strong hover:bg-subtle",
+  ghost: "text-brand-dark hover:bg-brand-soft",
 };
 
 type Variant = keyof typeof variants;

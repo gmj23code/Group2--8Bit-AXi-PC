@@ -13,9 +13,9 @@ export function AccountCard() {
 
   if (!session) {
     return (
-      <div className="rounded-card bg-lavender p-4 flex flex-col gap-3">
-        <p className="text-lg">
-          <strong>You&apos;re a guest.</strong> Your preferences are saved on this device only.
+      <div className="rounded-card bg-surface border border-line p-5 flex flex-col gap-3 shadow-card">
+        <p>
+          <strong className="font-semibold">You&apos;re a guest.</strong> Your preferences are saved on this device only.
         </p>
         <ButtonLink href="/login" variant="secondary" className="w-full">
           Log in or sign up to save them
@@ -25,10 +25,10 @@ export function AccountCard() {
   }
 
   return (
-    <div className="rounded-card bg-brand-soft p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-lg min-w-0">
-        <span className="block text-ink-soft">Saved to your account</span>
-        <strong className="block truncate">{session.user.email}</strong>
+    <div className="rounded-card bg-surface border border-line p-5 shadow-card flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="min-w-0">
+        <span className="block text-sm text-ink-soft">Saved to your account</span>
+        <strong className="block truncate font-semibold">{session.user.email}</strong>
       </p>
       <Button
         variant="secondary"
