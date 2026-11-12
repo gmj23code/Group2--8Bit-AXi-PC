@@ -14,7 +14,39 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. Set your preferences, go to **Scan**, turn on **Demo mode**, and tap **Check all 3 pages**. Demo mode scores a 3-page, 45-dish sample menu against your real preferences, fully offline with no API keys, so it's the safe choice for a live pitch.
+Open http://localhost:3000, set your preferences, and go to **Scan**. **Demo mode is on by default:** pick one of six sample menus, watch it "scan", and see every dish ranked for you. No API key, no network, no AI calls.
+
+## Demo mode: the sample menu library
+
+Six made-up restaurants (no real names, logos, or branding), each with its own language, cuisine, and look. They prove Picky Eater works across menus, scripts, and diets, **without paying for AI scans**.
+
+| Sample menu | Language | Pages · dishes | Look | Good for showing |
+|---|---|---|---|---|
+| **Trattoria del Girasole** | Italian | 3 · 44 | Cream paper, elegant serif, rustic | Hidden pine nuts (pesto), anchovy (puntarelle), lard (cannoli), pork gelatin (panna cotta) |
+| **Izakaya Tsukiakari** | Japanese | 2 · 26 | Minimal, vertical name with red seal | Names only; hidden fish stock (dashi), mirin (alcohol), wheat in soba |
+| **Taquería El Nopal Azul** | Spanish | 1 · 20 | Chalkboard, hand-lettered | Lard in beans and tamales, peanuts/sesame in mole, clam juice in a cocktail |
+| **Mashawi Al-Arz** | Arabic (right-to-left) | 1 · 21 | Ornate border, warm colors | Halal-certified kitchen; tahini (sesame) and pine nuts |
+| **Kesar Rasoi** | Hindi + English subtitles | 2 · 26 | Maroon & saffron, decorative headers | Vegetarian and Jain dishes; hidden ghee, cashews, wheat in hing |
+| **The Brass Lantern Deli** | English | 2 · 26 | Retro diner | Kosher-certified, keto/high-protein plates; hidden schmaltz, anchovy |
+
+**How it works** ([`src/lib/demo/`](src/lib/demo/)):
+
+- Each dish has its **printed** name/description (in the menu's language), an **English** name and description for results, a price in local currency, and an **ingredient list**.
+- When you "scan" a sample, it's scored **on your device** against your **real saved preferences**, including your own "+ Other" entries, with the same safety rules as real scans:
+  - An ingredient that breaks a rule → red, score 0–10.
+  - Vague dishes (soup of the day, shared fryers, "fillings vary") → "Ask your server".
+  - Meat without certification → ask about halal/kosher; meat + dairy breaks kosher.
+  - A name or description that *sounds* risky (e.g. "Chocolate Egg Cream") → "Ask your server".
+- **Change your preferences and scan again, and the results change.** This is the key moment in a pitch: try adding *+ Other: "no mushrooms"* and rescanning the izakaya.
+- Menu pages are drawn with HTML/CSS (paper or chalkboard texture, tilt, shadow, glare) from the same data, so pictures always match results.
+- Fonts for every script (Noto Sans JP, Amiri for Arabic, Noto Sans Devanagari, plus each restaurant's display font) are self-hosted via `next/font`: no empty boxes, and they work offline. None are preloaded; each downloads only when a page shows those characters.
+- The scanning animation takes about 2–4 seconds: reading each page → translating → checking allergens → ranking.
+- Results show the original dish name, its English name, and a short English description, plus a **Try another menu** button.
+- Demo mode **never calls the server's AI route** (verified in testing: zero requests to `/api/analyze`).
+
+### Live scanning (optional, costs API credits)
+
+The real upload and AI code is kept in full (PDFs, multiple photos, page batching; see below). With no `ANTHROPIC_API_KEY`, the Scan screen in live mode shows **"Live scanning coming soon. Try one of our sample menus!"** with a button to the gallery, never an error. Add a key and restart to switch it on.
 
 ## Turning on the real features
 
@@ -118,7 +150,10 @@ Sample menus live in [`test-menus/`](test-menus/). All the restaurants and dishe
 
 Suggested profile: **Vegetarian**, **Peanuts** and **Shellfish** allergies, **+ Other: "no mushrooms"**, goal **High protein**.
 
-- [ ] **Demo mode** (no key): 3 pages, 45 dishes; *Wild Mushroom Risotto* is red ("No mushrooms"); the page/section filter works offline.
+- [ ] **Demo gallery** (no key, Wi-Fi off): 6 cards with language labels; each menu scans in ~2–4 s with "Reading page…", "Translating from…", and "Checking allergens…"; results show original + English names.
+- [ ] **Preferences change results**: scan the izakaya, add *+ Other: "no mushrooms"*, and scan again. *椎茸 (Shiitake)* turns red.
+- [ ] **Arabic** results and menu read right-to-left; Japanese, Arabic, and Hindi text never shows empty boxes.
+- [ ] **Live mode without a key** shows "Live scanning coming soon" with a button to the sample menus (no error).
 - [ ] **Text PDF**: progress shows "Reading pages 1–3 of 3"; *Patatas bravas* appears once; *Bœuf bourguignon* and *Paella de marisco* are red; *Ravioli ai funghi* is red or "Ask your server" for mushrooms; dishes have an English name under the French/Spanish/Italian one; prices keep "€".
 - [ ] **Scanned PDF**: dishes are read even though the PDF has no text layer; *Pad Thai*, *Som Tum*, and *Massaman Curry* are red (peanuts); fish-sauce dishes are red for Vegetarian; *Fried Tofu* is "Ask your server" (shared fryer).
 - [ ] **Photos**: upload both Izakaya photos at once; Japanese names stay as printed with English names below; *唐揚げ* appears once; *椎茸 (Shiitake)* is flagged for "no mushrooms"; *豚バラ (Pork belly)* is red for Vegetarian.
@@ -141,6 +176,7 @@ src/
 │  ├─ results/ + [id]/      # Ranked list + dish detail
 │  └─ api/analyze/route.ts  # Server-only: one menu page per request
 ├─ components/              # UI pieces (RuleChips, SectionFilter, LoadingScan, …)
+│  └─ demo/                 # Gallery, menu view, menu art (MenuArt.tsx), fonts
 └─ lib/
    ├─ schema.ts             # Zod schemas = single source of truth for types
    ├─ options.ts            # Diets, allergies, goals (+ search synonyms)
@@ -151,7 +187,8 @@ src/
    ├─ scan-input.ts         # PDF splitting / photo prep in the browser
    ├─ analyze-client.ts     # Sends pages (3 at a time), progress, retries
    ├─ limits.ts             # Upload limits shared by browser and server
-   ├─ demo*.ts              # 3-page sample menu, scored offline
+   ├─ demo/                 # Sample menu library (6 menus) + offline scorer
+   ├─ live-status.ts        # Is live AI scanning set up? (asks /api/status)
    ├─ auth.ts, preferences-store.ts   # Supabase + local preference sync
    └─ server/               # Claude call + upload validation (server-only)
 supabase/schema.sql         # Table + Row Level Security (safe to re-run)

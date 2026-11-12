@@ -15,7 +15,7 @@ export function DemoToggle() {
     >
       <span>
         <span className="block font-semibold">Demo mode</span>
-        <span className="block text-ink-soft">Use a sample menu. No internet needed.</span>
+        <span className="block text-ink-soft">Six sample menus in six languages. No internet needed.</span>
       </span>
       <span className="flex items-center gap-3 shrink-0">
         <span className={`text-sm font-semibold w-8 text-right ${on ? "text-brand" : "text-ink-soft"}`}>{on ? "On" : "Off"}</span>

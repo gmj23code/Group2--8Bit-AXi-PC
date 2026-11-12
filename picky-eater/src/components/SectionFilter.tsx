@@ -23,7 +23,7 @@ function buildGroups(analysis: Analysis): Group[] {
   const pageNumbers = [...new Set(items.map((i) => i.page).filter((p): p is number => !!p))].sort((a, b) => a - b);
   const sectionsOf = (page?: number) => {
     // Prefer the menu's own section order; otherwise use first appearance.
-    const known = analysis.pages?.find((p) => p.number === page)?.sections;
+    const known = page === undefined ? analysis.sections : analysis.pages?.find((p) => p.number === page)?.sections;
     if (known?.length) return known.filter((s) => items.some((i) => i.page === page && i.section === s));
     const seen: string[] = [];
     for (const i of items) if (i.section && i.page === page && !seen.includes(i.section)) seen.push(i.section);

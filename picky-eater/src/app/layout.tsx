@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, Manrope } from "next/font/google";
 import { AppHeader } from "@/components/AppHeader";
 import { AuthSync } from "@/components/AuthSync";
+import { demoFontVars } from "@/components/demo/demo-fonts";
 import "./globals.css";
 
 // Manrope: clean, open, very readable at small sizes on phones (body + UI).
@@ -29,7 +30,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${manrope.variable} ${instrumentSerif.variable} h-full`}>
+    <html lang="en" className={`${manrope.variable} ${instrumentSerif.variable} ${demoFontVars} h-full`}>
       <body className="min-h-full flex flex-col">
         {/* Keyboard users can jump past the header straight to the page content. */}
         <a

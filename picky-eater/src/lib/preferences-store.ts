@@ -120,10 +120,13 @@ export function startPreferenceSync() {
   });
 }
 
-/** Demo mode: sample menu + mocked results, no network or API key needed. */
+/**
+ * Demo mode: the sample menu library, scored on-device. No network, no API key, no AI.
+ * ON by default, so first-time visitors land on the sample menus.
+ */
 const demoStore = createStorageStore("picky-eater:demo-mode", z.boolean());
 export function useDemoMode() {
-  return demoStore.use() ?? false;
+  return demoStore.use() ?? true;
 }
 export const setDemoMode = demoStore.save;
 

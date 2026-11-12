@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, ButtonLink } from "@/components/Button";
-import { DemoMenuPages } from "@/components/DemoMenuPages";
+import { DemoGallery } from "@/components/demo/DemoGallery";
+import { DemoMenuView } from "@/components/demo/DemoMenuView";
+import { MenuPhoto, SCENE_H, SCENE_W } from "@/components/demo/MenuArt";
+import { Scaled } from "@/components/demo/Scaled";
 import { DemoToggle } from "@/components/DemoToggle";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
@@ -12,9 +15,10 @@ import { LoadingScan } from "@/components/LoadingScan";
 import { MenuCapture } from "@/components/MenuCapture";
 import { ProfileSummary } from "@/components/ProfileSummary";
 import { SelectedPages } from "@/components/SelectedPages";
-import { ScanError, scanMenu, type ScanProgress } from "@/lib/analyze-client";
-import { demoPageImages } from "@/lib/demo-menu-svg";
+import { ScanError, scanDemoMenu, scanMenu, type ScanProgress } from "@/lib/analyze-client";
+import { getDemoMenu } from "@/lib/demo";
 import { LIMITS } from "@/lib/limits";
+import { useLiveScanning } from "@/lib/live-status";
 import { analysisStore, setDemoMode, useDemoMode, usePreferences } from "@/lib/preferences-store";
 import { InputError, addFiles, type ScanSelection } from "@/lib/scan-input";
 
@@ -22,11 +26,26 @@ export default function ScanPage() {
   const router = useRouter();
   const prefs = usePreferences();
   const demo = useDemoMode();
+  const live = useLiveScanning();
+  const [demoMenuId, setDemoMenuId] = useState<string | null>(null);
   const [selection, setSelection] = useState<ScanSelection>(null);
   const [preparing, setPreparing] = useState(false);
   const [progress, setProgress] = useState<ScanProgress | null>(null); // non-null while scanning
   const [fileError, setFileError] = useState<string | null>(null); // couldn't open/split the file
   const [scanError, setScanError] = useState<ScanError | null>(null); // scan failed
+  const [noKey, setNoKey] = useState(false); // the server turned out to have no API key
+
+  // Next.js keeps this page alive (hidden) after navigating to Results. Without this, coming
+  // back via "Try another menu" would show the finished scanning screen. Reset the transient
+  // parts when the page is hidden; a layout effect avoids any flash of stale state.
+  useLayoutEffect(
+    () => () => {
+      setProgress(null);
+      setDemoMenuId(null);
+      setScanError(null);
+    },
+    [],
+  );
 
   if (prefs === undefined) return null;
 
@@ -48,6 +67,15 @@ export default function ScanPage() {
     );
   }
 
+  const demoMenu = getDemoMenu(demoMenuId);
+  const liveAvailable = live === true && !noKey;
+
+  function openSampleMenus() {
+    setScanError(null);
+    setDemoMode(true);
+    setDemoMenuId(null);
+  }
+
   async function handleFiles(files: File[]) {
     setFileError(null);
     setScanError(null);
@@ -67,31 +95,60 @@ export default function ScanPage() {
     setSelection(pages.length ? { ...selection, pages } : null);
   }
 
-  async function handleScan() {
+  async function runScan() {
     if (!prefs) return;
     setScanError(null);
-    const pages = demo ? [] : (selection?.pages ?? []);
-    setProgress({ stage: "reading", total: demo ? 3 : pages.length, done: [], active: [] });
     try {
-      analysisStore.save(await scanMenu(pages, prefs, demo, setProgress));
+      if (demo && demoMenu) {
+        // Demo: scored on this device. Never calls the server or the AI.
+        setProgress({ stage: "reading", total: demoMenu.pages.length, done: [], active: [1] });
+        analysisStore.save(await scanDemoMenu(demoMenu, prefs, setProgress));
+      } else {
+        const pages = selection?.pages ?? [];
+        setProgress({ stage: "reading", total: pages.length, done: [], active: [] });
+        analysisStore.save(await scanMenu(pages, prefs, setProgress));
+      }
       router.push("/results");
     } catch (e) {
-      setScanError(e instanceof ScanError ? e : new ScanError("ai_unavailable", "Something went wrong. Please try again."));
+      const err = e instanceof ScanError ? e : new ScanError("ai_unavailable", "Something went wrong. Please try again.");
+      if (err.code === "no_api_key") setNoKey(true); // show the friendly note, not an error
+      else setScanError(err);
       setProgress(null);
     }
   }
 
-  // In demo mode, the 3-page sample menu stands in for the user's own pages.
-  const showDemoMenu = demo;
-  const pageCount = selection?.pages.length ?? 0;
-  const canAddPhotos = !selection || (selection.kind === "photos" && pageCount < LIMITS.maxPhotos);
-
+  /* ---------- Scanning ---------- */
   if (progress) {
-    const previews = demo ? demoPageImages() : (selection?.pages.map((p) => p.previewUrl ?? null) ?? []);
+    const total = demo && demoMenu ? demoMenu.pages.length : (selection?.pages.length ?? 1);
+    const renderPage = (n: number, size: "large" | "thumb") => {
+      if (demo && demoMenu) {
+        return (
+          // Thumbnails are cropped by their tile, so both sizes use the same scaled art.
+          <Scaled width={SCENE_W} height={SCENE_H}>
+            <MenuPhoto menu={demoMenu} page={n} />
+          </Scaled>
+        );
+      }
+      const src = selection?.pages[n - 1]?.previewUrl;
+      if (!src) return null;
+      return size === "large" ? (
+        // eslint-disable-next-line @next/next/no-img-element -- local data URL
+        <img src={src} alt="" className="w-full aspect-[3/4] object-cover object-top" />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element -- local data URL
+        <img src={src} alt="" className="absolute inset-0 w-full h-full object-cover object-top" />
+      );
+    };
     return (
       <>
         <title>Reading the menu… · Picky Eater</title>
-        <LoadingScan previews={previews} progress={progress} demo={demo} />
+        <LoadingScan
+          totalPages={total}
+          renderPage={renderPage}
+          progress={progress}
+          language={demo && demoMenu && demoMenu.language.code !== "EN" ? demoMenu.language.english : undefined}
+          demo={demo}
+        />
       </>
     );
   }
@@ -106,36 +163,37 @@ export default function ScanPage() {
       <ProfileSummary prefs={prefs} />
       <DemoToggle />
 
-      {scanError ? (
+      {demo ? (
+        demoMenu ? (
+          <DemoMenuView menu={demoMenu} onBack={() => setDemoMenuId(null)} onScan={() => void runScan()} />
+        ) : (
+          <DemoGallery onPick={setDemoMenuId} />
+        )
+      ) : live === undefined && !noKey ? (
+        <p role="status" className="text-center text-ink-soft py-6">
+          Checking live scanning…
+        </p>
+      ) : !liveAvailable ? (
+        <LiveScanNote onOpenSamples={openSampleMenus} />
+      ) : scanError ? (
         <ErrorState
           error={scanError}
-          onRetry={() => void handleScan()}
+          onRetry={() => void runScan()}
           onRetake={() => {
             setScanError(null);
             setSelection(null);
           }}
-          onDemo={() => {
-            setScanError(null);
-            setDemoMode(true);
-          }}
+          onDemo={openSampleMenus}
         />
-      ) : showDemoMenu ? (
-        <div className="flex flex-col gap-3">
-          <DemoMenuPages />
-          <Button onClick={() => void handleScan()} className="w-full">
-            Check all 3 pages
-          </Button>
-          <p className="text-sm text-ink-soft text-center">Turn off Demo mode to scan your own menu.</p>
-        </div>
       ) : (
         <div className="flex flex-col gap-3">
           {selection ? (
             <>
               <SelectedPages selection={selection} onRemovePage={removePage} onClear={() => setSelection(null)} />
-              <Button onClick={() => void handleScan()} className="w-full" disabled={preparing}>
-                {pageCount > 1 ? `Check all ${pageCount} pages` : "Check this menu"}
+              <Button onClick={() => void runScan()} className="w-full" disabled={preparing}>
+                {selection.pages.length > 1 ? `Check all ${selection.pages.length} pages` : "Check this menu"}
               </Button>
-              {canAddPhotos && (
+              {selection.kind === "photos" && selection.pages.length < LIMITS.maxPhotos && (
                 <>
                   <p className="mt-2 text-sm text-ink-soft text-center">More pages? Add one photo per page.</p>
                   <MenuCapture onFiles={handleFiles} disabled={preparing} quiet adding />
@@ -165,6 +223,22 @@ export default function ScanPage() {
           Getting your menu ready…
         </p>
       )}
+    </div>
+  );
+}
+
+/** Shown instead of uploads when live AI scanning isn't set up yet. Never an error. */
+function LiveScanNote({ onOpenSamples }: { onOpenSamples: () => void }) {
+  return (
+    <div className="rounded-card border border-line bg-surface p-6 shadow-card flex flex-col items-center text-center gap-3">
+      <span className="w-12 h-12 rounded-full grid place-items-center bg-brand-soft text-brand">
+        <Icon name="camera" size={24} />
+      </span>
+      <h2 className="font-display text-[1.9rem] leading-tight">Live scanning coming soon</h2>
+      <p className="text-ink-soft max-w-md">Try one of our sample menus! Six restaurants, six languages, scored against your preferences.</p>
+      <Button onClick={onOpenSamples} className="w-full max-w-md mt-1">
+        Open sample menus
+      </Button>
     </div>
   );
 }

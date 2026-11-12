@@ -105,6 +105,10 @@ export const MenuItemSchema = z.object({
 export const AnalysisSchema = z.object({
   items: z.array(MenuItemSchema),
   source: z.enum(["ai", "demo"]),
+  /** Demo mode: which sample menu was scanned. */
+  menu: z.object({ id: z.string(), restaurant: z.string(), cuisine: z.string(), language: z.string() }).optional(),
+  /** Section names in menu order, for single-page menus (multi-page menus use pages[].sections). */
+  sections: z.array(z.string()).optional(),
   /** The pages that were read, in order (used for the page filter and "3 pages" summary). */
   pages: z
     .array(

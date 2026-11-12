@@ -7,7 +7,8 @@
 */
 @theme {
   /* Body/UI: Manrope. Display: Instrument Serif (one weight, used large for titles only). */
-  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  /* Non-Latin fallbacks (Japanese, Arabic, Devanagari) so dish names never show as boxes. */
+  --font-sans: var(--font-manrope), var(--f-jp-sans), var(--f-arabic), var(--f-devanagari), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-instrument), Georgia, "Times New Roman", serif;
 
   /* Neutrals */

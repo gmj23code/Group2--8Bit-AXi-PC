@@ -1,6 +1,6 @@
 "use client";
 
-import { DEMO_PAGES, runDemo } from "./demo";
+import { runDemo, type DemoMenu } from "./demo";
 import { LIMITS } from "./limits";
 import { mergePageResults } from "./merge";
 import type { ScanPage } from "./scan-input";
@@ -18,6 +18,7 @@ export class ScanError extends Error {
 /** What the loading screen shows. Page numbers are 1-based. */
 export type ScanProgress =
   | { stage: "reading"; total: number; done: number[]; active: number[] }
+  | { stage: "translating"; language: string }
   | { stage: "checking" }
   | { stage: "scoring" };
 
@@ -69,26 +70,33 @@ async function sendPage(page: ScanPage, pageNumber: number, totalPages: number, 
   return parsed.data;
 }
 
-/** Runs a scan: demo mode stays on-device; otherwise every page goes to our server route. */
+/**
+ * Demo scan: scores a sample menu on-device. Never calls the server or the AI.
+ * Paced to feel real but stay quick for a pitch: about 2–3.5 seconds in total.
+ */
+export async function scanDemoMenu(menu: DemoMenu, prefs: Preferences, onProgress: (p: ScanProgress) => void = () => {}): Promise<Analysis> {
+  const total = menu.pages.length;
+  for (let page = 1; page <= total; page++) {
+    onProgress({ stage: "reading", total, done: range(1, page - 1), active: [page] });
+    await sleep(650);
+  }
+  if (menu.language.code !== "EN") {
+    onProgress({ stage: "translating", language: menu.language.english });
+    await sleep(600);
+  }
+  onProgress({ stage: "checking" });
+  await sleep(500);
+  onProgress({ stage: "scoring" });
+  await sleep(350);
+  return runDemo(menu, prefs);
+}
+
+/** Real scan: every page goes to our server route (and from there to Claude). */
 export async function scanMenu(
   pages: ScanPage[],
   prefs: Preferences,
-  demo: boolean,
   onProgress: (p: ScanProgress) => void = () => {},
 ): Promise<Analysis> {
-  if (demo) {
-    // Paced so the audience can see each page being "read" during the pitch.
-    const total = DEMO_PAGES.length;
-    for (let page = 1; page <= total; page++) {
-      onProgress({ stage: "reading", total, done: range(1, page - 1), active: [page] });
-      await sleep(750);
-    }
-    onProgress({ stage: "checking" });
-    await sleep(600);
-    onProgress({ stage: "scoring" });
-    await sleep(400);
-    return runDemo(prefs);
-  }
 
   if (pages.length === 0) throw new ScanError("bad_request", "Please take or choose a photo or PDF first.");
   const total = pages.length;
@@ -170,6 +178,7 @@ export async function scanMenu(
       total > 1
         ? results.map((r) => ({ number: r.page, sections: r.sections })).sort((a, b) => a.number - b.number)
         : undefined,
+    sections: total === 1 ? results[0].sections : undefined,
     notice: notices.length ? notices.join(" ") : undefined,
     analyzedAt: new Date().toISOString(),
   };
