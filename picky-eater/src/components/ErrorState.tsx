@@ -17,8 +17,13 @@ const CONTENT: Record<ScanError["code"], { title: string; kind: Kind; tips?: str
   unreadable: { title: "We couldn't read this photo", kind: "photo", tips: PHOTO_TIPS },
   not_a_menu: { title: "That doesn't look like a menu", kind: "photo", tips: ["Take a photo of the page with the dishes and prices."] },
   no_items: { title: "We couldn't find any dishes", kind: "photo", tips: ["Get a little closer.", "Try one section of the menu at a time."] },
-  refused: { title: "We couldn't check this photo", kind: "photo" },
-  bad_request: { title: "We couldn't use that photo", kind: "photo" },
+  too_dense: { title: "Too many dishes on one page", kind: "photo", tips: ["Photograph the top half and bottom half of the page separately."] },
+  refused: { title: "We couldn't check this menu", kind: "photo" },
+  bad_request: { title: "We couldn't use that file", kind: "photo" },
+  bad_file: { title: "We couldn't read that file", kind: "photo", tips: ["Use a PDF, or a JPG, PNG, or WebP photo."] },
+  too_large: { title: "That file is too big", kind: "photo", tips: ["Take photos of the menu instead. We shrink photos automatically."] },
+  too_many_pages: { title: "That menu has too many pages", kind: "photo", tips: ["Upload just the food and drink pages."] },
+  encrypted_pdf: { title: "This PDF is locked", kind: "photo", tips: ["Save an unlocked copy, or take photos of the menu."] },
   network: { title: "You seem to be offline", kind: "connection" },
   timeout: { title: "This is taking too long", kind: "connection" },
   ai_unavailable: { title: "The menu reader is having trouble", kind: "connection" },
@@ -39,7 +44,7 @@ export function ErrorState({ error, onRetry, onRetake, onDemo }: ErrorStateProps
 
   const retake = (
     <Button key="retake" onClick={onRetake} variant={c.kind === "photo" ? "primary" : "secondary"} className="w-full">
-      📸 Take a new photo
+      Take a new photo
     </Button>
   );
   const retry = (

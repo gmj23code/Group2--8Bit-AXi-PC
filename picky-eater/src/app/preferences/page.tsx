@@ -1,25 +1,25 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { PreferencesForm } from "@/components/PreferencesForm";
 import { usePreferences } from "@/lib/preferences-store";
-import { EMPTY_PREFERENCES } from "@/lib/schema";
 
 /** First-run setup. Settings reuses the same form. */
 export default function PreferencesPage() {
-  const router = useRouter();
   const saved = usePreferences();
 
   return (
-    <div className="pt-6">
+    <div>
       <title>Set up · Picky Eater</title>
-      <h1 className="text-3xl font-extrabold">Let&apos;s set you up</h1>
-      <p className="text-lg text-ink-soft mt-2 mb-6">Tap everything that applies. You can change this any time.</p>
       {saved !== undefined && (
         <PreferencesForm
-          initial={saved ?? EMPTY_PREFERENCES}
-          submitLabel="Save and scan a menu →"
-          onSaved={() => router.push("/scan")}
+          initial={saved}
+          intro={
+            <>
+              <p className="text-sm font-semibold uppercase tracking-wider text-brand">Get started</p>
+              <h1 className="mt-2 font-display text-[2.6rem] leading-[1.05]">Let&apos;s set you up</h1>
+              <p className="text-ink-soft mt-1">Tap everything that applies. You can change this any time.</p>
+            </>
+          }
         />
       )}
     </div>

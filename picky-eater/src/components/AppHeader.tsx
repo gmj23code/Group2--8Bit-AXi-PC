@@ -1,20 +1,20 @@
 import Link from "next/link";
-import { Mascot } from "./Mascot";
+import { Suspense } from "react";
+import { HeaderNav, NavLinks } from "./HeaderNav";
+import { Logo } from "./Logo";
 
+/** Logo (home) on the left; Scan and Settings on the right of every screen. */
 export function AppHeader() {
   return (
-    <header className="w-full border-b border-line bg-cream/90 backdrop-blur sticky top-0 z-20">
-      <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 rounded-xl min-h-12 pr-2">
-          <Mascot size={36} />
-          <span className="text-xl font-extrabold tracking-tight">Picky Eater</span>
+    <header className="w-full border-b border-line bg-canvas/85 backdrop-blur-md sticky top-0 z-20">
+      <div className="max-w-2xl mx-auto px-5 h-16 flex items-center justify-between gap-2">
+        <Link href="/" aria-label="Picky Eater home" className="flex items-center rounded-lg min-h-12 pr-2">
+          <Logo />
         </Link>
-        <Link
-          href="/settings"
-          className="min-h-12 px-4 inline-flex items-center gap-2 rounded-full border-2 border-line bg-white font-bold hover:bg-brand-soft"
-        >
-          <span aria-hidden="true">⚙️</span> Settings
-        </Link>
+        {/* The highlight depends on the URL; the fallback shows the same links without it. */}
+        <Suspense fallback={<NavLinks path={null} />}>
+          <HeaderNav />
+        </Suspense>
       </div>
     </header>
   );

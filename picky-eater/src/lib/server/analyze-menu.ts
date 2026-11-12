@@ -3,7 +3,7 @@ import "server-only"; // build fails if this file is ever imported into client c
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { SYSTEM_PROMPT, buildUserMessage } from "../prompt";
-import { ModelOutputSchema, type AnalyzeRequest, type ErrorCode, type ModelOutput } from "../schema";
+import { ModelOutputSchema, type ErrorCode, type FileKind, type ModelOutput, type Preferences } from "../schema";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
@@ -22,36 +22,52 @@ function getClient() {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new AnalyzeFailure("no_api_key", "The AI isn't set up yet. Turn on Demo mode to try the app.", 503);
   }
-  // One retry on network/5xx/429; 60s cap so a stuck call doesn't hang the phone.
-  client ??= new Anthropic({ timeout: 60_000, maxRetries: 1 });
+  // No automatic retries here: one page must finish within the hosting time limit
+  // (see maxDuration in the route). The browser retries a failed page once instead.
+  client ??= new Anthropic({ timeout: 55_000, maxRetries: 0 });
   return client;
 }
 
-/** Sends the menu photo + profile to Claude and returns schema-validated output. */
-export async function analyzeMenu(req: AnalyzeRequest): Promise<ModelOutput> {
+export type PageInput = {
+  bytes: Uint8Array;
+  kind: FileKind;
+  page: number;
+  totalPages: number;
+  preferences: Preferences;
+};
+
+/** Sends ONE menu page (a photo, or a single-page PDF) + the profile to Claude. */
+export async function analyzePage(input: PageInput): Promise<ModelOutput> {
   const anthropic = getClient();
+  const data = Buffer.from(input.bytes).toString("base64");
+
+  // PDFs go in as native document blocks: Claude sees each page as an image AND its
+  // extracted text, so both text-based and scanned PDFs work without conversion.
+  // The file comes first, then the instructions (Anthropic's recommended order).
+  const file =
+    input.kind === "pdf"
+      ? ({ type: "document", source: { type: "base64", media_type: "application/pdf", data } } as const)
+      : ({ type: "image", source: { type: "base64", media_type: input.kind, data } } as const);
 
   let response;
   try {
     response = await anthropic.beta.messages.parse({
       model: MODEL,
       max_tokens: 16000,
-      // If a safety filter wrongly declines a menu photo, the API retries on a
+      // If a safety filter wrongly declines a menu page, the API retries on a
       // recommended fallback model inside the same call instead of failing.
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       output_config: {
-        effort: "medium", // good accuracy while keeping a scan to a few seconds
+        effort: "medium", // good accuracy while keeping one page well under a minute
         format: betaZodOutputFormat(ModelOutputSchema),
       },
-      system: SYSTEM_PROMPT,
+      // Same text on every request, marked for prompt caching to cut cost on multi-page menus.
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [
         {
           role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: req.mediaType, data: req.image } },
-            { type: "text", text: buildUserMessage(req.preferences) },
-          ],
+          content: [file, { type: "text", text: buildUserMessage(input.preferences, input.page, input.totalPages) }],
         },
       ],
     });
@@ -66,7 +82,10 @@ export async function analyzeMenu(req: AnalyzeRequest): Promise<ModelOutput> {
     }
     if (err instanceof Anthropic.BadRequestError) {
       console.error("[analyze] bad request:", err.message);
-      throw new AnalyzeFailure("bad_request", "We couldn't use that photo. Try a JPG or PNG.", 400);
+      throw new AnalyzeFailure("bad_file", "We couldn't read that file. Try a different PDF or a photo of the menu.", 400);
+    }
+    if (err instanceof Anthropic.APIConnectionTimeoutError) {
+      throw new AnalyzeFailure("ai_unavailable", "This page took too long to read. Please try again.", 504);
     }
     if (err instanceof Anthropic.APIError) {
       console.error("[analyze] API error", err.status, err.message);
@@ -77,10 +96,10 @@ export async function analyzeMenu(req: AnalyzeRequest): Promise<ModelOutput> {
   }
 
   if (response.stop_reason === "refusal") {
-    throw new AnalyzeFailure("refused", "We couldn't analyze this photo. Try a different picture of the menu.", 422);
+    throw new AnalyzeFailure("refused", "We couldn't analyze this page. Try a different picture of the menu.", 422);
   }
   if (response.stop_reason === "max_tokens") {
-    throw new AnalyzeFailure("ai_unavailable", "This menu is very long. Try a photo of one page at a time.", 422);
+    throw new AnalyzeFailure("too_dense", "This page has too many dishes to read at once. Try photographing half of it at a time.", 422);
   }
   if (!response.parsed_output) {
     console.error("[analyze] output did not match schema");

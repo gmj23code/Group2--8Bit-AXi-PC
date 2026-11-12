@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- Source for the "phone photo" test menus (non-English names, yen prices, tilted).
+     Rendered to PNG with headless Chrome: ?page=1 or ?page=2 -->
+<html><head><meta charset="utf-8"><style>
+  body { margin: 0; width: 900px; height: 1200px; overflow: hidden;
+    background: radial-gradient(circle at 30% 20%, #6b5a48, #2b231b 70%); }
+  .card { position: absolute; left: 90px; top: 70px; width: 700px; padding: 46px 52px 40px; background: #fbf7ee;
+    transform: rotate(2.2deg); box-shadow: 0 24px 50px rgba(0,0,0,.55); font-family: "Yu Gothic", "Meiryo", "Hiragino Sans", sans-serif; color: #1e1a16; }
+  .card::after { content: ""; position: absolute; inset: 0;
+    background: linear-gradient(115deg, rgba(255,255,255,.25), transparent 35%, rgba(0,0,0,.12) 90%); pointer-events: none; }
+  h1 { margin: 0; font-size: 44px; text-align: center; letter-spacing: 6px; }
+  .en { text-align: center; color: #6b5a48; margin: 4px 0 18px; letter-spacing: 3px; }
+  h2 { font-size: 22px; border-left: 6px solid #b23a2a; padding-left: 10px; margin: 22px 0 8px; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; font-size: 23px; margin-top: 10px; }
+  .row small { display: block; font-size: 15px; color: #6b5a48; }
+  .page { display: none; } body[data-page="1"] .p1, body[data-page="2"] .p2 { display: block; }
+</style></head>
+<body><script>document.body.dataset.page = new URLSearchParams(location.search).get("page") || "1";</script>
+<div class="card">
+  <h1>居酒屋 星</h1><p class="en">IZAKAYA HOSHI</p>
+  <div class="page p1">
+    <h2>前菜 Small plates</h2>
+    <div class="row"><span>枝豆<small>Edamame, sea salt</small></span><span>¥480</span></div>
+    <div class="row"><span>冷奴<small>Chilled tofu, ginger, bonito flakes</small></span><span>¥520</span></div>
+    <div class="row"><span>唐揚げ<small>Fried chicken</small></span><span>¥780</span></div>
+    <div class="row"><span>たこ焼き</span><span>¥650</span></div>
+    <div class="row"><span>揚げ出し豆腐</span><span>¥600</span></div>
+    <h2>焼き鳥 Skewers</h2>
+    <div class="row"><span>ねぎま<small>Chicken &amp; leek</small></span><span>¥320</span></div>
+    <div class="row"><span>豚バラ<small>Pork belly</small></span><span>¥340</span></div>
+    <div class="row"><span>椎茸<small>Shiitake</small></span><span>¥280</span></div>
+  </div>
+  <div class="page p2">
+    <h2>麺・ご飯 Noodles &amp; rice</h2>
+    <div class="row"><span>ざるそば<small>Cold buckwheat noodles</small></span><span>¥880</span></div>
+    <div class="row"><span>味噌ラーメン<small>Miso ramen, pork, egg</small></span><span>¥980</span></div>
+    <div class="row"><span>親子丼</span><span>¥920</span></div>
+    <div class="row"><span>鮭おにぎり<small>Salmon rice ball</small></span><span>¥300</span></div>
+    <h2>甘味・飲み物 Dessert &amp; drinks</h2>
+    <div class="row"><span>抹茶アイス<small>Matcha ice cream</small></span><span>¥450</span></div>
+    <div class="row"><span>生ビール<small>Draft beer</small></span><span>¥600</span></div>
+    <div class="row"><span>緑茶<small>Green tea</small></span><span>¥200</span></div>
+    <div class="row"><span>唐揚げ<small>Fried chicken</small></span><span>¥780</span></div>
+  </div>
+</div></body></html>

@@ -1,28 +1,33 @@
 "use client";
 
 import { useRef, type ChangeEvent } from "react";
+import { Icon } from "./Icon";
 
 type MenuCaptureProps = {
-  onFile: (file: File) => void;
+  onFiles: (files: File[]) => void;
   disabled?: boolean;
+  /** Secondary styling when another primary action is on screen (e.g. Demo mode). */
+  quiet?: boolean;
+  /** Labels change once photos are already picked ("Add another photo"). */
+  adding?: boolean;
 };
 
 /**
- * Two big choices: take a photo (opens the rear camera on phones) or pick one from
- * the device. On laptops both open a file picker, which is fine for demos.
+ * Two big choices: take a photo (opens the rear camera on phones) or upload photos/a PDF
+ * from the device. Uploading allows several photos at once (one per menu page).
  */
-export function MenuCapture({ onFile, disabled }: MenuCaptureProps) {
+export function MenuCapture({ onFiles, disabled, quiet = false, adding = false }: MenuCaptureProps) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = ""; // allow picking the same file twice
-    if (file) onFile(file);
+    if (files.length) onFiles(files);
   }
 
-  const big =
-    "w-full min-h-24 rounded-card border-2 text-xl font-extrabold flex items-center justify-center gap-3 disabled:opacity-50";
+  const tile =
+    "w-full min-h-24 rounded-card border flex flex-col items-center justify-center gap-1.5 px-3 text-base font-semibold transition-colors disabled:opacity-50";
 
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -30,21 +35,31 @@ export function MenuCapture({ onFile, disabled }: MenuCaptureProps) {
         type="button"
         disabled={disabled}
         onClick={() => cameraRef.current?.click()}
-        className={`${big} bg-brand text-white border-brand-dark hover:bg-brand-dark`}
+        className={`${tile} ${quiet ? "bg-surface text-ink border-line-strong hover:bg-subtle" : "bg-brand text-white border-brand hover:bg-brand-dark shadow-card"}`}
       >
-        <span className="text-3xl" aria-hidden="true">📸</span> Take a photo
+        <Icon name="camera" size={26} />
+        {adding ? "Photograph another page" : "Take a photo"}
       </button>
       <button
         type="button"
         disabled={disabled}
         onClick={() => uploadRef.current?.click()}
-        className={`${big} bg-white text-ink border-line hover:bg-brand-soft`}
+        className={`${tile} bg-surface text-ink border-line-strong hover:bg-subtle`}
       >
-        <span className="text-3xl" aria-hidden="true">🖼️</span> Upload a photo
+        <Icon name={adding ? "image" : "menu"} size={26} />
+        {adding ? "Upload more photos" : "Upload photos or a PDF"}
+        {!adding && <span className="text-sm font-normal text-ink-soft">Several photos, or a PDF menu</span>}
       </button>
 
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={handleChange} />
-      <input ref={uploadRef} type="file" accept="image/*" hidden onChange={handleChange} />
+      <input
+        ref={uploadRef}
+        type="file"
+        accept={adding ? "image/*" : "image/*,application/pdf,.pdf"}
+        multiple
+        hidden
+        onChange={handleChange}
+      />
     </div>
   );
 }

@@ -1,0 +1,54 @@
+<!doctype html>
+<!-- Source for the "scanned PDF" test menu. Rendered to PNG with headless Chrome, then
+     wrapped into an image-only PDF by scripts/make-test-menus.mjs. ?page=1 or ?page=2 -->
+<html><head><meta charset="utf-8"><style>
+  body { margin: 0; background: #d9d4c7; }
+  .sheet { width: 800px; height: 1060px; margin: 0 auto; background: #f4efe2; position: relative; overflow: hidden;
+    font-family: "Trebuchet MS", Arial, sans-serif; color: #241c12; filter: contrast(1.05) grayscale(0.25); }
+  /* .note sits outside .inner: a transformed parent would become its positioning box. */
+  /* scanner look: slight tilt, uneven light, speckle */
+  .inner { padding: 60px 70px; transform: rotate(-0.8deg); }
+  .sheet::after { content: ""; position: absolute; inset: 0; background:
+      radial-gradient(circle at 90% 10%, rgba(0,0,0,.10), transparent 40%),
+      repeating-radial-gradient(circle at 30% 70%, rgba(0,0,0,.035) 0 1px, transparent 1px 4px); pointer-events: none; }
+  h1 { text-align: center; font-size: 46px; letter-spacing: 4px; margin: 0; }
+  .sub { text-align: center; font-style: italic; margin: 6px 0 26px; }
+  h2 { font-size: 22px; letter-spacing: 3px; border-bottom: 2px solid #241c12; padding-bottom: 4px; margin: 26px 0 12px; }
+  .item { display: flex; justify-content: space-between; font-size: 20px; margin: 10px 0 0; font-weight: bold; }
+  .desc { font-size: 16px; font-style: italic; margin: 2px 0 0; }
+  .note { text-align: center; font-size: 14px; position: absolute; bottom: 40px; left: 0; right: 0; }
+  .page { display: none; } body[data-page="1"] .p1, body[data-page="2"] .p2 { display: block; }
+</style></head>
+<body><script>document.body.dataset.page = new URLSearchParams(location.search).get("page") || "1";</script>
+<div class="sheet"><div class="inner">
+  <h1>GOLDEN LOTUS</h1><p class="sub">Thai &amp; Vietnamese Kitchen</p>
+  <div class="page p1">
+    <h2>APPETIZERS</h2>
+    <div class="item"><span>Fresh Summer Rolls</span><span>$8</span></div><p class="desc">Shrimp, rice noodles, herbs, peanut sauce</p>
+    <div class="item"><span>Chicken Satay</span><span>$10</span></div>
+    <div class="item"><span>Crispy Spring Rolls</span><span>$7</span></div><p class="desc">Pork and glass noodles</p>
+    <div class="item"><span>Fried Tofu</span><span>$7</span></div><p class="desc">Sweet chili sauce. Shared fryer</p>
+    <div class="item"><span>Som Tum</span><span>$11</span></div><p class="desc">Green papaya salad, dried shrimp, peanuts, lime</p>
+    <h2>SOUPS</h2>
+    <div class="item"><span>Tom Yum Goong</span><span>$13</span></div><p class="desc">Hot &amp; sour shrimp soup, lemongrass, mushrooms</p>
+    <div class="item"><span>Tom Kha Gai</span><span>$12</span></div><p class="desc">Coconut chicken soup, galangal</p>
+    <div class="item"><span>Beef Pho</span><span>$14</span></div><p class="desc">Rice noodles, rare beef, beef broth, herbs</p>
+    <div class="item"><span>Vegetable Pho</span><span>$13</span></div>
+  </div>
+  <div class="page p2">
+    <h2>CURRIES</h2>
+    <div class="item"><span>Green Curry</span><span>$16</span></div><p class="desc">Chicken or tofu, Thai eggplant, basil, coconut milk</p>
+    <div class="item"><span>Massaman Curry</span><span>$17</span></div><p class="desc">Beef, potato, peanuts</p>
+    <div class="item"><span>Panang Curry</span><span>$16</span></div>
+    <h2>NOODLES &amp; RICE</h2>
+    <div class="item"><span>Pad Thai</span><span>$15</span></div><p class="desc">Rice noodles, egg, peanuts, bean sprouts</p>
+    <div class="item"><span>Pad See Ew</span><span>$15</span></div><p class="desc">Wide rice noodles, Chinese broccoli, soy sauce</p>
+    <div class="item"><span>Bun Cha</span><span>$16</span></div><p class="desc">Grilled pork, vermicelli, fish sauce dip</p>
+    <div class="item"><span>Pineapple Fried Rice</span><span>$15</span></div><p class="desc">Shrimp, cashews, curry powder</p>
+    <div class="item"><span>Jasmine Rice</span><span>$3</span></div>
+    <h2>DESSERT</h2>
+    <div class="item"><span>Mango Sticky Rice</span><span>$9</span></div>
+  </div>
+</div>
+<p class="note">Please inform your server of any allergies. Our kitchen uses peanuts, shellfish and fish sauce.</p>
+</div></body></html>

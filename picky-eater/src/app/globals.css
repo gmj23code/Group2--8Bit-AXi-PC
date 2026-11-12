@@ -1,36 +1,44 @@
 @import "tailwindcss";
 
 /*
-  Picky Eater theme: soft, warm pastels with dark text for high contrast.
+  Picky Eater design tokens.
+  Warm neutral canvas, one deep-teal accent, muted status colors.
   Every text/background pair below meets WCAG AA (4.5:1) or better.
 */
 @theme {
-  --font-sans: var(--font-nunito), ui-rounded, system-ui, sans-serif;
+  /* Body/UI: Manrope. Display: Instrument Serif (one weight, used large for titles only). */
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-instrument), Georgia, "Times New Roman", serif;
 
-  --color-cream: #fffaf3;
-  --color-ink: #2b2433; /* main text */
-  --color-ink-soft: #5a5163; /* secondary text, still AA on cream */
-  --color-line: #e8dfd3; /* borders */
+  /* Neutrals */
+  --color-canvas: #f8f6f2; /* page background */
+  --color-surface: #ffffff; /* cards */
+  --color-subtle: #f1eee8; /* quiet fills: chips, tags, inputs on hover */
+  --color-line: #e4dfd6; /* hairline borders */
+  --color-line-strong: #c9c2b6; /* input borders, controls (3:1 on white) */
+  --color-ink: #1f1d1a; /* main text (16:1) */
+  --color-ink-soft: #5c5750; /* secondary text (6.6:1 on canvas) */
 
-  --color-brand: #2f7d4f; /* buttons, selected chips (white text on it = 5.3:1) */
-  --color-brand-dark: #22603c;
-  --color-brand-soft: #e3f5ea;
+  /* The one accent: buttons, selected states, links, focus */
+  --color-brand: #0e5c58; /* white text on it = 7.6:1 */
+  --color-brand-dark: #0a4744;
+  --color-brand-soft: #e4efed;
 
-  --color-peach: #ffe9dc;
-  --color-lavender: #efe9fb;
-  --color-sky: #e4f1fb;
+  /* Muted score/status colors: text color on its own background is AA */
+  --color-great: #2e6b46;
+  --color-great-bg: #e8f1eb;
+  --color-okay: #7a5a12;
+  --color-okay-bg: #f7f0de;
+  --color-meh: #964a1c;
+  --color-meh-bg: #f8eadf;
+  --color-bad: #a32c24;
+  --color-bad-bg: #f8e4e1;
 
-  /* Score badge colors (used from Phase 3). Text color is dark enough on its own background. */
-  --color-great: #1f6b37;
-  --color-great-bg: #dcf5e3;
-  --color-okay: #6b4f00;
-  --color-okay-bg: #fff1bf;
-  --color-meh: #8f3700;
-  --color-meh-bg: #ffe2cc;
-  --color-bad: #9b111e;
-  --color-bad-bg: #fde0e0;
+  --radius-card: 0.875rem;
 
-  --radius-card: 1.5rem;
+  /* Soft, low shadows instead of puffy ones */
+  --shadow-card: 0 1px 2px rgb(31 29 26 / 0.04), 0 2px 8px rgb(31 29 26 / 0.04);
+  --shadow-lift: 0 2px 4px rgb(31 29 26 / 0.05), 0 8px 24px rgb(31 29 26 / 0.07);
 
   /* Loading screen scan line sweeping down and back up the photo. */
   --animate-scan: scan 2.4s ease-in-out infinite;
@@ -52,15 +60,31 @@ html {
 }
 
 body {
-  background: var(--color-cream);
+  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Clear, thick focus ring for keyboard users. */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+/* Instrument Serif has a single weight: never let the browser fake a bold version. */
+.font-display {
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: -0.01em;
+}
+
+/* Clear focus ring for keyboard users. */
 :focus-visible {
   outline: 3px solid var(--color-brand);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

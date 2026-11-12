@@ -1,159 +1,24 @@
-import { labelFor } from "./options";
-import type { Analysis, ModelItem, Preferences } from "./schema";
-import { applyRules, verdictForScore } from "./scoring";
+import { DEMO_DISHES, DEMO_PAGES, type DemoDish } from "./demo-menu";
+import { hardRules, rulesMentionedIn, type HardRule } from "./rules";
+import { PreferencesSchema, type Analysis, type Preferences } from "./schema";
+import { applyRules, verdictForScore, type RawItem } from "./scoring";
 
-// Demo mode: a fake café menu with hand-written nutrition judgments, scored against
-// the user's REAL preferences on-device. Works with no Wi-Fi and no API key, and
-// still reacts when you change your preferences, which makes for a better pitch.
+// Demo mode: scores the "Harbor & Vine" sample menu against the user's REAL preferences,
+// on-device, with no network and no API key. Unlike a real scan, the demo knows every
+// dish's ingredients, so it can check custom "+ Other" rules precisely:
+//   - a rule whose trigger words appear in the ingredients → broken (red, 0–10)
+//   - a rule the menu says is uncertain (shared fryer, "may contain", daily specials) → Ask your server
+//   - meat without halal certification → Ask your server (halal, kosher); meat + dairy → breaks kosher
 
-export const DEMO_MENU_IMAGE = "/demo/sample-menu.svg";
+export { DEMO_PAGES };
 
-type GoalScores = Record<string, number>; // goal id → 0-100 fit
-
-type DemoDish = {
-  name: string;
-  description: string;
-  price: string;
-  /** Restriction ids it breaks + allergen ids it contains. */
-  breaks: string[];
-  /** Rules a real server would need to confirm. */
-  unsure: string[];
-  goals: GoalScores;
-  reasons: string[];
-  tags: string[];
-};
-
-// Goal order for the compact score arrays below.
-const G = ["healthy", "high_protein", "low_carb", "keto", "low_calorie", "low_sodium", "low_sugar", "gut_friendly", "heart_healthy", "high_fiber"];
-const g = (...v: number[]): GoalScores => Object.fromEntries(G.map((id, i) => [id, v[i]]));
-
-const MEAT_NOT_VEG = ["vegetarian", "vegan", "pescatarian"];
-
-const DISHES: DemoDish[] = [
-  {
-    name: "Grilled Salmon Bowl",
-    description: "Salmon, quinoa, avocado, kale, lemon-tahini dressing",
-    price: "$16",
-    breaks: ["vegetarian", "vegan", "fish", "sesame"],
-    unsure: [],
-    goals: g(92, 90, 55, 50, 75, 70, 90, 80, 95, 75),
-    reasons: ["Grilled fish and greens make a balanced meal.", "Lots of protein and healthy fats."],
-    tags: ["High protein", "Omega-3s", "Contains fish", "Contains sesame"],
-  },
-  {
-    name: "Garden Lentil Soup",
-    description: "Red lentils, carrots, celery, cumin. Vegan and gluten-free",
-    price: "$8",
-    breaks: [],
-    unsure: [],
-    goals: g(88, 60, 40, 20, 85, 45, 85, 85, 85, 95),
-    reasons: ["Packed with fiber and plant protein.", "Soups can be salty, so it's not the best low-sodium pick."],
-    tags: ["Vegan", "High fiber", "Gluten-free"],
-  },
-  {
-    name: "Tofu Veggie Stir-Fry",
-    description: "Tofu, broccoli, peppers, brown rice, soy-ginger sauce",
-    price: "$13",
-    breaks: ["soy", "wheat", "gluten_free"],
-    unsure: ["peanuts", "tree_nuts"],
-    goals: g(82, 65, 35, 15, 75, 25, 70, 75, 78, 80),
-    reasons: ["Lots of vegetables and brown rice.", "Soy sauce adds a lot of salt.", "Woks are often shared with peanut dishes."],
-    tags: ["Vegan", "Contains soy", "High fiber"],
-  },
-  {
-    name: "Greek Yogurt Parfait",
-    description: "Greek yogurt, granola, berries, honey",
-    price: "$7",
-    breaks: ["vegan", "dairy_free", "milk"],
-    unsure: ["tree_nuts", "gluten_free"],
-    goals: g(70, 70, 30, 10, 70, 95, 30, 95, 70, 55),
-    reasons: ["Yogurt is great for your gut.", "Honey and granola add sugar."],
-    tags: ["Gut-friendly", "Contains dairy", "Vegetarian"],
-  },
-  {
-    name: "Chicken Caesar Salad",
-    description: "Romaine, grilled chicken, parmesan, croutons, Caesar dressing",
-    price: "$13",
-    breaks: [...MEAT_NOT_VEG, "dairy_free", "gluten_free", "kosher", "milk", "eggs", "wheat", "fish"],
-    unsure: ["halal"],
-    goals: g(65, 80, 60, 60, 60, 35, 85, 50, 55, 45),
-    reasons: ["Good protein from grilled chicken.", "Caesar dressing usually has anchovy and egg."],
-    tags: ["High protein", "Contains dairy", "Contains egg"],
-  },
-  {
-    name: "Shrimp Tacos",
-    description: "Corn tortillas, grilled shrimp, cabbage slaw, chipotle mayo",
-    price: "$15",
-    breaks: ["vegetarian", "vegan", "kosher", "shellfish", "eggs"],
-    unsure: ["gluten_free"],
-    goals: g(65, 75, 35, 25, 65, 45, 80, 60, 60, 50),
-    reasons: ["Lean shrimp and fresh slaw.", "The mayo adds fat and egg."],
-    tags: ["Contains shellfish", "Contains egg", "Spicy"],
-  },
-  {
-    name: "Steak & Eggs",
-    description: "Sirloin steak, two fried eggs, roasted potatoes",
-    price: "$19",
-    breaks: [...MEAT_NOT_VEG, "eggs"],
-    unsure: ["halal", "kosher"],
-    goals: g(45, 95, 50, 70, 35, 40, 95, 35, 30, 20),
-    reasons: ["One of the highest-protein dishes here.", "Red meat and fried eggs are heavy on the heart."],
-    tags: ["High protein", "Red meat", "Contains egg"],
-  },
-  {
-    name: "Margherita Pizza",
-    description: "Tomato sauce, fresh mozzarella, basil",
-    price: "$12",
-    breaks: ["vegan", "dairy_free", "gluten_free", "milk", "wheat"],
-    unsure: ["kosher", "halal"],
-    goals: g(40, 45, 10, 5, 35, 25, 70, 40, 40, 30),
-    reasons: ["Simple and vegetarian.", "Lots of refined carbs and salty cheese."],
-    tags: ["Vegetarian", "Contains dairy", "Contains wheat"],
-  },
-  {
-    name: "Pesto Pasta",
-    description: "Linguine, basil pesto, pine nuts, parmesan",
-    price: "$14",
-    breaks: ["vegan", "dairy_free", "gluten_free", "tree_nuts", "milk", "wheat"],
-    unsure: ["kosher"],
-    goals: g(40, 35, 5, 5, 30, 45, 75, 40, 50, 35),
-    reasons: ["Mostly pasta, so it's high in carbs.", "Pesto has pine nuts and cheese."],
-    tags: ["Vegetarian", "Contains nuts", "Contains dairy"],
-  },
-  {
-    name: "Classic Cheeseburger & Fries",
-    description: "Beef patty, cheddar, brioche bun, fries",
-    price: "$14",
-    breaks: [...MEAT_NOT_VEG, "dairy_free", "gluten_free", "kosher", "milk", "wheat", "eggs"],
-    unsure: ["halal"],
-    goals: g(20, 70, 15, 20, 10, 10, 50, 20, 15, 20),
-    reasons: ["Fried sides and a big bun make it heavy.", "Very high in salt and fat."],
-    tags: ["Fried", "Contains dairy", "Contains wheat"],
-  },
-  {
-    name: "Fresh Mint Lemonade",
-    description: "Lemon, mint, cane sugar",
-    price: "$4",
-    breaks: [],
-    unsure: [],
-    goals: g(45, 0, 20, 5, 50, 100, 15, 50, 60, 0),
-    reasons: ["Refreshing, but most of it is sugar."],
-    tags: ["Vegan", "Sugary"],
-  },
-  {
-    name: "Chocolate Lava Cake",
-    description: "Warm chocolate cake with a molten center, vanilla ice cream",
-    price: "$9",
-    breaks: ["vegan", "dairy_free", "gluten_free", "milk", "eggs", "wheat"],
-    unsure: ["tree_nuts"],
-    goals: g(10, 15, 5, 5, 5, 70, 0, 10, 10, 10),
-    reasons: ["A treat: lots of sugar and butter."],
-    tags: ["Dessert", "Sugary", "Contains dairy"],
-  },
-];
+// Probes reuse the real keyword lists to detect meat and dairy in a dish.
+const MEAT_PROBE = hardRules(PreferencesSchema.parse({ restrictions: ["pescatarian"] }));
+const DAIRY_PROBE = hardRules(PreferencesSchema.parse({ allergies: ["milk"] }));
 
 /** Weighted average of goal fits: goal #1 counts N times, #2 N-1 times, and so on. */
-function weightedScore(goals: GoalScores, prefs: Preferences): number {
+function weightedScore(dish: DemoDish, prefs: Preferences): number {
+  const goals = dish.goals as Record<string, number>;
   const ranked = prefs.goals.filter((id) => id in goals);
   if (ranked.length === 0) return goals.healthy;
   let total = 0;
@@ -166,41 +31,58 @@ function weightedScore(goals: GoalScores, prefs: Preferences): number {
   return Math.round(total / weights);
 }
 
-/** The user's chosen rule ids → the labels shown in the UI (matches the AI path). */
-function toLabels(ids: string[], prefs: Preferences): string[] {
-  return ids.flatMap((id) => {
-    if (prefs.restrictions.includes(id)) return [labelFor(id)];
-    if (prefs.allergies.includes(id)) return [`${labelFor(id)} allergy`];
-    return [];
-  });
+function unsureLabels(dish: DemoDish, rules: HardRule[]): string[] {
+  if (!dish.unsure) return [];
+  if (dish.unsure === "ALL") return rules.map((r) => r.label);
+  if (dish.unsure === "ALL_ALLERGENS") return rules.filter((r) => r.kind === "allergy").map((r) => r.label);
+  const ids = dish.unsure;
+  return rules.filter((r) => r.id && ids.includes(r.id)).map((r) => r.label);
 }
 
 export function runDemo(prefs: Preferences): Analysis {
-  const raw: ModelItem[] = DISHES.map((d) => {
-    const violates = toLabels(d.breaks, prefs);
-    const unsure = toLabels(d.unsure, prefs);
-    const score = weightedScore(d.goals, prefs);
-    const reasons = [
-      ...(violates.length ? [`Not safe for you: ${violates.join(", ")}.`] : []),
-      ...(!violates.length && unsure.length ? [`Ask your server about: ${unsure.join(", ")}.`] : []),
-      ...d.reasons,
-    ];
+  const rules = hardRules(prefs);
+  const labelOf = (id: string) => rules.find((r) => r.id === id)?.label;
+
+  const raw: RawItem[] = DEMO_DISHES.map((d) => {
+    const text = [d.name, d.description, ...d.ingredients].join(" ");
+    const violates = new Set(rulesMentionedIn(text, rules));
+    const unsure = new Set(unsureLabels(d, rules));
+
+    const hasMeat = rulesMentionedIn(text, MEAT_PROBE).length > 0;
+    const hasDairy = rulesMentionedIn(text, DAIRY_PROBE).length > 0;
+    const kosher = labelOf("kosher");
+    const halal = labelOf("halal");
+    if (hasMeat && hasDairy && kosher) violates.add(kosher);
+    if (hasMeat && kosher && !d.certified?.includes("kosher")) unsure.add(kosher);
+    if (hasMeat && halal && !d.certified?.includes("halal")) unsure.add(halal);
+    for (const l of violates) unsure.delete(l);
+
+    const score = weightedScore(d, prefs);
     return {
       name: d.name,
+      englishName: null,
       description: d.description,
       price: d.price,
       score,
-      verdict: violates.length ? "avoid" : unsure.length ? "ask_server" : verdictForScore(score),
-      reasons,
+      verdict: violates.size ? "avoid" : unsure.size ? "ask_server" : verdictForScore(score),
+      // Warnings are shown separately on the card, so reasons stay about the food itself.
+      reasons: d.reasons,
       tags: d.tags,
-      violatesRestrictions: violates,
-      uncertainAbout: unsure,
+      violatesRestrictions: [...violates],
+      uncertainAbout: [...unsure],
+      ingredients: d.ingredients,
+      page: d.page,
+      section: d.section,
     };
   });
 
   return {
     items: applyRules(raw, prefs),
     source: "demo",
+    pages: DEMO_PAGES.map((p) => ({
+      ...p,
+      sections: [...new Set(DEMO_DISHES.filter((d) => d.page === p.number).map((d) => d.section))],
+    })),
     analyzedAt: new Date().toISOString(),
   };
 }
