@@ -28,11 +28,19 @@ export function ResultCard({ item, topPick = false }: { item: MenuItem; topPick?
         <ScoreBadge item={item} />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-lg font-semibold leading-snug">{item.name}</h2>
-            {item.price && <span className="shrink-0 font-medium text-ink-soft tabular-nums">{item.price}</span>}
+            {/* dir="auto": Arabic and other right-to-left names lay out correctly. */}
+            <h2 dir="auto" className="text-lg font-semibold leading-snug">
+              {item.name}
+            </h2>
+            {item.price && (
+              <span dir="auto" className="shrink-0 font-medium text-ink-soft tabular-nums">
+                {item.price}
+              </span>
+            )}
           </div>
           {item.englishName && <p className="text-ink-soft italic">{item.englishName}</p>}
           {placeLabel(item) && <p className="mt-0.5 text-sm text-ink-soft">{placeLabel(item)}</p>}
+          {item.englishName && item.description && <p className="mt-1 text-[0.95rem] text-ink-soft line-clamp-2">{item.description}</p>}
           {item.reasons[0] && <p className="mt-1 text-ink-soft leading-relaxed">{item.reasons[0]}</p>}
         </div>
         <Icon name="chevronRight" className="self-center text-ink-soft group-hover:text-ink" />

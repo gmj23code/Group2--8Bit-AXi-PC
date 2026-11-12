@@ -22,7 +22,7 @@ export type HardRule = {
 
 /* ---------- Keyword lists for built-in rules ---------- */
 
-const MEAT = ["chicken", "beef", "steak", "pork", "bacon", "ham", "lamb", "veal", "duck", "turkey", "sausage", "pepperoni", "prosciutto", "chorizo", "meatball", "burger", "brisket", "salami", "pancetta", "lard", "gelatin"];
+const MEAT = ["chicken", "beef", "steak", "pork", "bacon", "ham", "lamb", "veal", "duck", "turkey", "sausage", "pepperoni", "prosciutto", "chorizo", "meatball", "burger", "brisket", "salami", "pancetta", "lard", "gelatin", "mutton", "goat meat", "schmaltz", "liver", "pastrami", "guanciale", "venison", "rabbit"];
 const SEAFOOD = ["fish", "salmon", "tuna", "cod", "anchov", "shrimp", "prawn", "crab", "lobster", "clam", "mussel", "oyster", "scallop", "calamari", "squid", "octopus", "fish sauce"];
 const PORK = ["pork", "bacon", "ham", "prosciutto", "pancetta", "chorizo", "pepperoni", "carnitas", "lard", "salami"];
 const DAIRY = ["cheese", "cream", "butter", "milk", "yogurt", "yoghurt", "parmesan", "mozzarella", "feta", "ricotta", "burrata", "queso", "ghee", "alfredo", "paneer", "custard"];
@@ -37,6 +37,9 @@ const STARCH = ["bread", "pasta", "rice", "noodle", "potato", "fries", "tortilla
 
 /** "Hamburger" contains "ham" but is beef. */
 const HAMBURGER = /\bhamburger\w*/g;
+
+/** "Beef salami", "turkey bacon", "chicken sausage": pork-style names made from other meats. */
+const NON_PORK_CUT = /\b(beef|turkey|chicken|veal|lamb)\s+(salami|bacon|ham|pepperoni|sausage|chorizo)\w*/g;
 
 /** Meat-free burgers: "burger" alone isn't meat. */
 const VEG_BURGER = /\b(black bean|bean|veggie|vegan|vegetarian|plant[- ]based|beyond|impossible|mushroom|tofu|falafel|chickpea|quinoa|lentil) burger\w*/g;
@@ -74,15 +77,15 @@ const BUILT_IN_KEYWORDS: Record<string, { keywords: string[]; except?: RegExp[] 
   vegetarian: { keywords: [...MEAT, ...SEAFOOD], except: [VEG_BURGER] },
   vegan: { keywords: [...MEAT, ...SEAFOOD, ...DAIRY, "egg", "honey", "mayo", "aioli"], except: [PLANT_MILK, VEG_BURGER, /\beggplant\w*/g] },
   pescatarian: { keywords: MEAT, except: [VEG_BURGER] },
-  kosher: { keywords: [...PORK, "shrimp", "prawn", "crab", "lobster", "clam", "mussel", "oyster", "scallop", "squid", "calamari"], except: [HAMBURGER] },
-  halal: { keywords: [...PORK, ...ALCOHOL], except: [HAMBURGER] },
+  kosher: { keywords: [...PORK, "shrimp", "prawn", "crab", "lobster", "clam", "mussel", "oyster", "scallop", "squid", "calamari"], except: [HAMBURGER, NON_PORK_CUT] },
+  halal: { keywords: [...PORK, ...ALCOHOL], except: [HAMBURGER, NON_PORK_CUT] },
   gluten_free: { keywords: GLUTEN, except: NOT_WHEAT },
   dairy_free: { keywords: DAIRY, except: [PLANT_MILK] },
   jain: { keywords: [...MEAT, ...SEAFOOD, "egg", "honey", "mushroom", ...ROOTS], except: [VEG_BURGER, /\beggplant\w*/g] },
   paleo: { keywords: [...GRAINS, ...BEANS, ...DAIRY, "sugar", "syrup"], except: [PLANT_MILK] },
   low_fodmap: { keywords: ["garlic", "onion", "shallot", "leek", ...WHEAT, "bean", "lentil", "chickpea", "hummus", "honey", "apple", "mango", "mushroom", "milk", "cream", "yogurt"], except: [PLANT_MILK, ...NOT_WHEAT] },
   keto: { keywords: [...STARCH, ...SUGARY] },
-  no_pork: { keywords: PORK, except: [HAMBURGER] },
+  no_pork: { keywords: PORK, except: [HAMBURGER, NON_PORK_CUT] },
   no_beef: { keywords: ["beef", "steak", "burger", "brisket", "veal", "oxtail", "pastrami", "meatball", "short rib"], except: [VEG_BURGER] },
   no_alcohol: { keywords: ALCOHOL },
 };
@@ -174,9 +177,21 @@ function hasWordStart(text: string, keyword: string) {
   return new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(text);
 }
 
+/**
+ * "without onion, garlic, or potato" / "no onion or garlic" / "free of nuts": the listed
+ * foods are NOT in the dish, so they mustn't trigger a warning. Removes the negated list.
+ */
+const FOOD_WORDS = String.raw`[a-z]+(?:\s+(?!and\b|or\b)[a-z]+)?`; // one or two words, never "and"/"or"
+const NEGATED_LIST = new RegExp(
+  String.raw`\b(?:without|no|free of)\s+${FOOD_WORDS}(?:\s*(?:,|&|\band\b|\bor\b)\s*(?:or\s+|and\s+)?${FOOD_WORDS})*`,
+  "g",
+);
+
 /** Labels of rules whose trigger words appear in the given text (name, description, ingredients). */
 export function rulesMentionedIn(text: string, rules: HardRule[]): string[] {
-  const base = ` ${text.toLowerCase()} `.replace(/\b[a-z]+[- ]free\b/g, " "); // "dairy-free" isn't dairy
+  const base = ` ${text.toLowerCase()} `
+    .replace(/\b[a-z]+[- ]free\b/g, " ") // "dairy-free" isn't dairy
+    .replace(NEGATED_LIST, " ");
   return rules
     .filter((r) => {
       let t = base;

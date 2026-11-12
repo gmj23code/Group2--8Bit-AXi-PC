@@ -68,7 +68,7 @@ export function ItemDetail() {
         <ScoreBadge item={item} size="lg" />
         <div className="min-w-0">
           {placeLabel(item) && <p className="text-sm font-medium text-ink-soft mb-1">{placeLabel(item)}</p>}
-          <h1 className="font-display text-[2.6rem] leading-[1.05]">{item.name}</h1>
+          <h1 dir="auto" className="font-display text-[2.6rem] leading-[1.05]">{item.name}</h1>
           {item.englishName && <p className="mt-1 text-lg text-ink-soft italic">{item.englishName}</p>}
           <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-ink-soft">
             {item.price && <span className="font-medium text-ink tabular-nums">{item.price}</span>}

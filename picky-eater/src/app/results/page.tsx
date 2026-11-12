@@ -60,11 +60,25 @@ export default function ResultsPage() {
             <span className="rounded-md bg-subtle px-2 py-0.5 text-xs font-semibold text-ink-soft">Demo</span>
           )}
         </div>
-        <h1 className="mt-2 font-display text-[2.6rem] leading-[1.05]">Your menu, ranked</h1>
+        <h1 className="mt-2 font-display text-[2.6rem] leading-[1.05]">
+          {analysis.menu ? analysis.menu.restaurant : "Your menu, ranked"}
+        </h1>
         <p className="text-ink-soft mt-1">
+          {analysis.menu
+            ? `${analysis.menu.cuisine} · ${analysis.menu.language === "English" ? "" : `translated from ${analysis.menu.language} · `}`
+            : ""}
           {all.length} dishes{pageCount > 1 ? ` from ${pageCount} pages` : ""}, best for you first.
         </p>
+        {analysis.source === "demo" && (
+          <p className="text-xs text-ink-soft mt-1">Sample menu for demonstration, scored on your device against your preferences.</p>
+        )}
       </div>
+
+      {analysis.source === "demo" && (
+        <ButtonLink href="/scan" variant="secondary" className="w-full">
+          <Icon name="menu" /> Try another menu
+        </ButtonLink>
+      )}
 
       <Disclaimer />
 
@@ -128,7 +142,15 @@ export default function ResultsPage() {
       <ScoreLegend />
 
       <ButtonLink href="/scan" variant="secondary" className="w-full">
-        <Icon name="camera" /> Scan another menu
+        {analysis.source === "demo" ? (
+          <>
+            <Icon name="menu" /> Try another menu
+          </>
+        ) : (
+          <>
+            <Icon name="camera" /> Scan another menu
+          </>
+        )}
       </ButtonLink>
     </div>
   );
