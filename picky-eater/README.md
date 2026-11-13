@@ -39,7 +39,7 @@ Six made-up restaurants (no real names, logos, or branding), each with its own l
   - A name or description that *sounds* risky (e.g. "Chocolate Egg Cream") → "Ask your server".
 - **Change your preferences and scan again, and the results change.** This is the key moment in a pitch: try adding *+ Other: "no mushrooms"* and rescanning the izakaya.
 - Menu pages are drawn with HTML/CSS (paper or chalkboard texture, tilt, shadow, glare) from the same data, so pictures always match results.
-- Fonts for every script (Noto Sans JP, Amiri for Arabic, Noto Sans Devanagari, plus each restaurant's display font) are self-hosted via `next/font`: no empty boxes, and they work offline. None are preloaded; each downloads only when a page shows those characters.
+- **Japanese, Arabic, and Devanagari fonts are committed to the repo** ([`src/fonts/demo/`](src/fonts/demo/), about 630 KB, SIL Open Font License) and loaded with `next/font/local`, so dev, builds, and offline pitches never download them. Japanese keeps only the characters the izakaya menu uses plus all kana: if you edit that menu, rebuild the fonts with [`scripts/make-demo-fonts.mjs`](scripts/make-demo-fonts.mjs) (instructions at the top of the file). The small Latin display fonts still come from Google via `next/font/google` (downloaded once, then cached).
 - The scanning animation takes about 2–4 seconds: reading each page → translating → checking allergens → ranking.
 - Results show the original dish name, its English name, and a short English description, plus a **Try another menu** button.
 - Demo mode **never calls the server's AI route** (verified in testing: zero requests to `/api/analyze`).
@@ -218,6 +218,7 @@ scripts/make-test-menus.mjs # Regenerates test-menus/
 | `npm run build` / `npm start` | Production build / serve it (stop `npm run dev` first: both use `.next/`) |
 | `npm run lint` | ESLint |
 | `node scripts/make-test-menus.mjs [--render]` | Rebuild the sample menus |
+| `node scripts/make-demo-fonts.mjs <ttfs> <tools>` | Rebuild the self-hosted demo fonts (after editing the Japanese menu) |
 
 ## Known limits (MVP)
 
